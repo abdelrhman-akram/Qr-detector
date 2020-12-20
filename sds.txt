@@ -1,0 +1,72 @@
+%{
+img = imread('Desert.jpg');
+img = rgb2gray(img);
+Thresh = graythresh(img);
+img = im2bw(img,Thresh);
+imshow(img);
+cc = bwconncomp(img);
+props = regionprops(cc,'Extent');
+%}
+im = imread('1.1.bmp');
+
+im = rgb2gray(im);
+Thresh = graythresh(im);
+im = im2bw(im,Thresh);
+BW = im;  
+%convert to 2D black and white with colors inverted
+figure 4,imshow(BW);
+%get outlines of each object
+[B,L,N] = bwboundaries(BW);
+cc = bwconncomp(im);
+
+%get stats
+stats =  regionprops(L, 'Centroid', 'Area', 'Perimeter','BoundingBox');
+imshow(im);
+for i = 1 : numel(stats)
+rectangle('Position', stats(i).BoundingBox, 'EdgeColor', 'r');
+endfor
+
+Centroid = cat(1, stats.Centroid);
+Perimeter = cat(1,stats.Perimeter);
+Area = cat(1,stats.Area);
+SquareMetric = NaN(N , 1);
+%for each boundary, fit to bounding box, and calculate some parameters
+for k=1:N,
+   boundary = B{k};
+   [rx,ry,boxArea] = minboundrect( boundary(:,2), boundary(:,1));  %x and y are flipped in images
+   %get width and height of bounding box
+   width = sqrt( sum( (rx(2)-rx(1)).^2 + (ry(2)-ry(1)).^2));
+   height = sqrt( sum( (rx(2)-rx(3)).^2+ (ry(2)-ry(3)).^2));
+   aspectRatio = width/height;
+   if aspectRatio > 1,  
+       aspectRatio = height/width;  %make aspect ratio less than unity
+   end
+   X1 = Centroid(k,1);
+   Y1 = Centroid(k,2);
+   X1
+   Y1
+   SquareMetric(k) = aspectRatio;    %aspect ratio of box sides  
+end
+%define some thresholds for each metric
+%do in order of circle, triangle, square, rectangle to avoid assigning the
+%same shape to multiple objects
+
+isRectangle = (SquareMetric > 0.9);  %rectangle isn't any of these
+%assign shape to each object
+whichShape = cell(N,1);  
+whichShape(isRectangle)= {'Rectangle'};
+%
+%now label with results
+RGB = label2rgb(L);
+
+imshow(RGB); hold on;
+Combined = [SquareMetric];
+
+for k=1:N,
+   %display metric values and which shape next to object
+   if SquareMetric(k) > 0.9
+   %Txt = sprintf('C=%0.3f S=%0.3f T=%0.3f',  Combined(k,:));
+   %text( Centroid(k,1)-20, Centroid(k,2), Txt);
+   text( Centroid(k,1)-20, Centroid(k,2)+20, whichShape{k});
+   endif
+end
